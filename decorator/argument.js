@@ -17,6 +17,7 @@ package decorator
 
 import [./../lang]error.js
 
+// Argument type listing
 decorator.argtype =
 {
     UNDEFINED   :typeof this.undefined,
@@ -30,6 +31,18 @@ decorator.argtype =
 /**
  * Argument decorator wraps a function in order to check that
  * arguments passed to it are of the expected type
+ *
+ * Usage:
+ *   var func = argumentParser(func,
+ *      argtype.SOMETHING,
+ *      otherfunction,
+ *      [argtype.ONETHING,argtype.TWOTHING])
+ *
+ * This will ensure a call to function has exactly three arguments
+ * and that the first is of the primitive type SOMETHING (as found in
+ * argtype), that the second is a function 'inheriting' from otherfunction,
+ * and that the third is of primitive type ONETHING or TWOTHING
+ * (as found in argtype)
  *
  * @namespace decorator
  * @param {Function} f function to be wrapped by this decorator
@@ -46,7 +59,7 @@ decorator.argumentDecorator = function( /*f, expectations*/ )
     if (typeof f != argtype.FUNCTION)
     {
         throw new InvalidArgumentError('arg 0' +
-            'expected function; got' + typeof f);
+            ';expected function; got ' + typeof f);
     }
 
     // Check the parameters are functions or strings
@@ -87,8 +100,9 @@ decorator.argumentDecorator = function( /*f, expectations*/ )
             var atype = typeof arguments[index];
 
             // If the type is a function search for instanceof
-            if (typeof etype == 'function')
+            switch (typeof etype)
             {
+            case argtype.FUNCTION:
                 // If the argument is not an object the user
                 // input the wrong type of argument
                 if (atype != 'object')
@@ -106,41 +120,45 @@ decorator.argumentDecorator = function( /*f, expectations*/ )
                     throw new InvalidArgumentError('arg ' + index +
                         ': expected ' + ename + '; got ' + aname);
                 }
-            }
-            else
-            {
-                // If the type is an object iterate over every object
+            break;
+            // If the type is an object iterate over every object
                 // and ensure that it is of the correct type
-                if (typeof etype == argtype.OBJECT)
-                {
-                    found = false;
+            case argtype.OBJECT:
 
-                    for(var key in etype)
+                found = false;
+
+                for(var key in etype)
+                {
+                    var item = etype[key];
+                    if (item == atype)
                     {
-                        var item = etype[key];
-                        if (item == atype)
-                        {
-                            found = true;
-                        }
-                    }
-                    if (! found)
-                    {
-                        // Get all of the types it could have been
-                        eline = ''
-                        for(var key in etype)
-                        {
-                            eline += ' or ' + etype[key];
-                        }
-                        throw new InvalidArgumentError('arg '+index+
-                            '; expected '+eline.substring(4)+'; got '+atype);
+                        found = true;
                     }
                 }
-                //Otherwise it must be a type so match that
-                else if (etype != atype)
+                if (! found)
+                {
+                    // Get all of the types it could have been
+                    eline = ''
+                    for(var key in etype)
+                    {
+                        eline += ' or ' + etype[key];
+                    }
+                    throw new InvalidArgumentError('arg '+index+
+                        '; expected '+eline.substring(4)+'; got '+atype);
+                }
+            break;
+            //Otherwise it must be a type so match that
+            case argtype.STRING:
+
+                if(etype != atype)
                 {
                     throw new InvalidArgumentError('arg '+index+
                         '; expected '+etype+'; got '+atype);
                 }
+
+            break;
+            default:
+                throw new Error('code should never reach this point');
             }
         }
         // Given no errors were thrown, call the original
