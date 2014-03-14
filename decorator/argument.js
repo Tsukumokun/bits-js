@@ -85,6 +85,8 @@ decorator.argumentDecorator = function( /*f, expectations*/ )
     // Give back a wrapper function
     return function(/*args*/)
     {
+        // Chain the internal function prototype
+        this.constructor.prototype.__proto__ = f.prototype;
         // Check for the length of the arguments
         if (expectations.length != arguments.length)
         {
@@ -122,10 +124,10 @@ decorator.argumentDecorator = function( /*f, expectations*/ )
                 }
             break;
             // If the type is an object iterate over every object
-                // and ensure that it is of the correct type
+            // and ensure that it is of the correct type
             case argtype.OBJECT:
 
-                found = false;
+                var found = false;
 
                 for(var key in etype)
                 {
